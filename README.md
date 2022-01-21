@@ -1,4 +1,4 @@
-# Busybee
+# busybee
  Swarm File Recovery
 
 What is busybee? 
