@@ -33,10 +33,10 @@ Description:
     busybee is a swarm utility allows a user to Select and schedule      
     groups of files to be uploaded to the Swarm network   
 
-    usage: 
+    Usage: 
       (busybee) bb <command>
         
-      commands
+      Options:
 
        start:      Start BusyBee Swarm recovery process. 
 
@@ -48,6 +48,7 @@ Description:
 
        remove:     Remove a file from backup schedule
         
+        Example =>   remove [filepath] 
 
        view:       View current scheduled files      
 
@@ -80,6 +81,7 @@ function captureUserInput()
 
         case 'remove':
             remove()
+            
         break
 
         case 'view':
