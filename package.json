@@ -1,33 +1,17 @@
 {
-  "name": "cliApp1",
+  "name": "busybee",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "file recovery",
+  "main": "./bin/index.js",
+  "bin": {
+    "bb": "./bin/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "bin": {
-    "bee": "./index.js"
-  },
-  "keywords": [],
-  "author": "",
+  "author": "Jonathan Howard",
   "license": "ISC",
   "dependencies": {
-    "@octokit/auth-basic": "^1.4.8",
-    "@octokit/rest": "^18.12.0",
-    "chalk": "^4.1.2",
-    "clear": "^0.1.0",
-    "clui": "^0.3.6",
-    "configstore": "^6.0.0",
-    "cron": "^1.8.2",
-    "figlet": "^1.5.2",
-    "fs": "0.0.1-security",
-    "inquirer": "^8.2.0",
-    "lodash": "^4.17.21",
-    "minimist": "^1.2.5",
-    "path": "^0.12.7",
-    "simple-git": "^2.47.0",
-    "touch": "^3.1.0",
-    "web3": "^1.6.0"
+    "web3": "^1.7.0"
   }
 }
