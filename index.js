@@ -6,24 +6,20 @@ Title: busybee
 
 Project Description: 
 This project gives users the ability to routinely 
-backup files using 'web3's Swarm protocol 
+backup files using web3's Swarm protocol 
 
 
 */
 
-var inquirer = require('inquirer')
+var path = require('path')
 var fs = require('fs')
-var CronJob = require('cron').CronJob
-
 var Web3 = require('web3');
-const path = require('path');
 var web3 = new Web3()
 web3.bzz.setProvider('https://swarm-gateways.net')
 
 const args = process.argv
-const currentdirectory = process.cwd()
-const PREF_FILE_PATH = './pref.json'
-const LOG_FILE_PATH = './logfile.json'
+const PREF_FILE_PATH = __dirname + "/pref.json"
+const LOG_FILE_PATH = __dirname + "/logfile.json"
 const HELP_TEXT = `                                   
                                                          
 busybee Swarm Utility      
@@ -33,35 +29,39 @@ Description:
     busybee is a swarm utility allows a user to Select and schedule      
     groups of files to be uploaded to the Swarm network   
 
-    Usage: 
+    usage: 
       (busybee) bb <command>
         
-      Options:
+      commands:
 
        start:      Start BusyBee Swarm recovery process. 
+        
+        Example ---> bb start
 
        add:        Schedule a file for backup  
         
-        Example =>   add [filepath]       
-        Example =>   add [filepath] [hour : minutes] 
-        Example =>   add [filepath] [hour : minutes] [frequency]
+        Example ---> bb add [filepath]       
+        Example ---> bb add [filepath] [hour : minutes] 
 
        remove:     Remove a file from backup schedule
         
-        Example =>   remove [filepath] 
+        Example ---> bb remove [filepath]
 
        view:       View current scheduled files      
 
-       
-       log:        View log of previous backups
+        Example ---> bb view 
 
+       log:        View log of previous backups
        
+        Example ---> bb log 
+
        download:   Download a specific file  
       
-         Example =>  download [swarm address] [destination filepath] 
+        Example ---> bb download [swarm address] [destination filepath] 
+                 
+       help:       Display help   
         
-         
-       help:       Display help       
+        Example ---> bb help
 `;
 
 captureUserInput()
@@ -76,12 +76,11 @@ function captureUserInput()
         break 
 
         case 'add':
-            add(args[3], args[4], args[5])
+            add(args[3], args[4])
         break
 
         case 'remove':
-            remove()
-            
+            remove(args[3])
         break
 
         case 'view':
@@ -109,11 +108,45 @@ function captureUserInput()
 }
 
 
-async function remove()
+async function remove(filepath)
 {
     try
     {
+        if (fs.existsSync(PREF_FILE_PATH))
+        {                   
+            fs.readFile(PREF_FILE_PATH, function (err, data) {
+                if (err)
+                    console.log("An error occurred opening Preference file: " + err)
 
+                let json = JSON.parse(data)
+
+                let counter = 0;
+                let found = false;
+                json.Pref.forEach(pref => {
+
+                    if (pref.file_path === filepath)
+                    {
+                        found = true;
+                        console.log("Found pref property: " + pref.file_path)                        
+                    }
+                    else
+                    {
+                        if (!found)  //Added because you can't manually break collection.foreach >:(
+                            counter++;
+                    }
+                })
+
+                console.log(json.Pref[counter])
+                delete json.Pref[counter]
+
+                removePreferenceElement(json)
+            })
+        }
+
+        else
+        {
+            console.log("There are currently no files scheduled that can be removed")
+        }
     }
 
     catch(exception)
@@ -202,20 +235,15 @@ async function download(hashaddress, downloadDest)
     }
 }
 
-function add(filepath, time, frequency)
+function add(filepath, time)
 {
     try
     {
-        //handleUserPreferenceInput(filepath)
         var prefInput = {
             filepath: filepath,
             time: time, 
-            frequency: frequency
         }
-        handleUserPreferenceInputII(prefInput)
-
-        //Initilizes cron job to pick up latest preferences 
-        //startCronJob()
+        handleUserPreferenceInput(prefInput)
     }
     catch(exception)
     {
@@ -223,19 +251,18 @@ function add(filepath, time, frequency)
     }
 }
 
-function handleUserPreferenceInputII(prefInput)
+function handleUserPreferenceInput(prefInput)
 {
     /*
         Example =>   add [filepath]       
         Example =>   add [filepath] [hour : minutes] 
-        Example =>   add [filepath] [hour : minutes] [frequency]
     */  
     let hour = null
     let min = null
-    let frequency = null
     let filenames = []
     let formattedfilepaths = []
     let plainfilenames = []
+    let currdate = new Date();
 
     if (prefInput.filepath)
     {
@@ -271,37 +298,62 @@ function handleUserPreferenceInputII(prefInput)
     }
     else
     {
-        hour = "00"
-        min = "00"
-    }
+        let unformattedHour = currdate.getHours()
+        let unformattedMin = currdate.getMinutes()
+        
+        if (unformattedHour < 10)
+            hour = "0" + unformattedHour.toString()
+        else 
+            hour = unformattedHour.toString()
 
-    if (prefInput.frequency)
-    {
-        frequency = prefInput.frequency
-        console.log("frequency: " + prefInput.frequency)
-    }
-    else 
-    {
-        frequency = "w"
-    }
+        if (unformattedMin < 10)
+            min = "0" + unformattedMin.toString()
+        else 
+            min = unformattedMin.toString()
+    
+        console.log("HOUR: " + hour)
+        console.log("MIN: " + min)
+    }    
 
     filenames.push(prefInput.filepath)
     
-    filenames.forEach(filename =>{
-        formattedfilepaths.push(filename)
-        plainfilenames.push(path.basename(filename)) 
-    })
+    filenames.forEach(fullfilepath =>{
+      
+       let filepath = fullfilepath
+       let filename = path.basename(fullfilepath)
     
+       let preference = {
+         file_name: filename,
+         file_path: filepath,
+         hour: hour,
+         minute: min,
+        }
+
+        console.log(preference)
+        modifyPreferenceFile(preference)    
+    }) 
+    
+    /*
+
     let preferences = {
         filenames: plainfilenames,
         filepath: formattedfilepaths,
         hour: hour,
         minute: min,
-        frequency: prefInput.frequency,
     }
     console.log(preferences)
 
     modifyPreferenceFile(preferences)
+    */
+}
+
+function removePreferenceElement(json){
+    
+    if (fs.existsSync(PREF_FILE_PATH))
+    {
+        console.log("File exist updating preference file")
+        fs.writeFileSync(PREF_FILE_PATH, JSON.stringify(json))
+    }
 }
 
 function modifyPreferenceFile(preferences){
