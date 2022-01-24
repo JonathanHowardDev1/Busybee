@@ -11,10 +11,6 @@ npm install -g busybee
 
 # Usage 
 
-Description:
-    busybee is a swarm utility allows a user to Select and schedule
-    groups of files to be uploaded to the Swarm network
-
     usage:
       (busybee) bb <command>
 
