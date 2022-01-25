@@ -20,10 +20,13 @@ npm install -g busy-bzz
 
         Example ---> bb start
 
-       add:        Schedule a file for backup
+       add:        Schedule a file for backup; by default not including hours and minutes will default the back up time to the current time
 
         Example ---> bb add [filepath]
-        Example ---> bb add [filepath] [hour : minutes]
+        Example ---> bb add [filepath] [hour (00 - 23) : minutes (00 - 59)]
+                |
+                --> bb add /filepath/file.txt 15:48
+                --> bb add /filepath/file.txt
 
        remove:     Remove a file from backup schedule
 
@@ -33,9 +36,9 @@ npm install -g busy-bzz
 
         Example ---> bb view
 
-       log:        View log of previous backups
+       history:        View log of previous backups
 
-        Example ---> bb log
+        Example ---> bb history
 
        download:   Download a specific file
 
@@ -44,6 +47,7 @@ npm install -g busy-bzz
        help:       Display help
 
         Example ---> bb help
+
 
 
 # Author
