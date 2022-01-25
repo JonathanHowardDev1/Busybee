@@ -1,22 +1,22 @@
-# busybee
+# busy-bzz
 
-What is busybee? 
+What is busy-bzz? 
 
 A command line application for backing up and recovering files with the web3 Swarm Protocol 
 
 # Install
 
 
-npm install -g busybee
+npm install -g busy-bzz
 
 # Usage 
 
     usage:
-      (busybee) bb <command>
+      (busy-bzz) bb <command>
 
       commands:
 
-       start:      Start BusyBee Swarm recovery process.
+       start:      Start busy-bzz Swarm recovery process.
 
         Example ---> bb start
 
