@@ -38,10 +38,13 @@ Description:
         
         Example ---> bb start
 
-       add:        Schedule a file for backup  
+       add:        Schedule a file for backup; by default not including hours and minutes will default the back up time to the current time
         
         Example ---> bb add [filepath]       
-        Example ---> bb add [filepath] [hour : minutes] 
+        Example ---> bb add [filepath] [hour (00 - 23) : minutes (00 - 59)] 
+                | 
+                --> bb add /filepath/file.txt 15:48
+                --> bb add /filepath/file.txt 
 
        remove:     Remove a file from backup schedule
         
@@ -51,9 +54,9 @@ Description:
 
         Example ---> bb view 
 
-       log:        View log of previous backups
+       history:        View log of previous backups
        
-        Example ---> bb log 
+        Example ---> bb history 
 
        download:   Download a specific file  
       
@@ -92,12 +95,11 @@ function captureUserInput()
         break
 
         case 'history':
-            viewHistory()
+            history()
         break
 
         case 'download':
-            if (args[3] != null && args[4] != null)
-                download(args[3], args[4])
+            download(args[3], args[4])
         break
 
         default: 
@@ -185,53 +187,75 @@ function view()
 
 async function download(hashaddress, downloadDest)
 {
-    if (hashaddress == null)
-        throw exception("hashaddress can't be null")
-
-    if (downloadDest == null)
-        console.log("No download destination was given. Downloading to currently directory")
-
-    try
+    if (hashaddress != null && hashaddress.length > 0 && downloadDest != null && downloadDest.length > 0)
     {
-        //get file address and file path 
-        if (fs.existsSync(LOG_FILE_PATH))
+        try
         {
-            console.log("File exist updating preference file")
-           
-            fs.readFile(LOG_FILE_PATH, function (err, data) {
-                console.log('Saving user preferences...')
+            //get file address and file path 
+            if (fs.existsSync(LOG_FILE_PATH))
+            {
+                console.log("File exist updating preference file")
+            
+                fs.readFile(LOG_FILE_PATH, function (err, data) {
+                    console.log('Saving user preferences...')
 
-                if (err)
-                {
-                    console.log("Error encountered opening log file")
-                }
-
-                let json = JSON.parse(data)
-                
-                json.Logs.forEach(log => {
-                
-                    if (log.address == hashaddress)
+                    if (err)
                     {
-                        console.log("Found address: " + hashaddress)
-                        web3.bzz.download(hashaddress).then(function(buffer){
-                            console.log("downloaded file: ", buffer.toString())
-                            fs.writeFileSync(downloadDest, buffer, {flag:'a+'})
-                        })
+                        console.log("Error encountered opening log file")
                     }
-                });
-                
-                fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(json))
-            })
-        }
-        else 
-        {
-            console.log("File does not exist to download...")
-        }        
-    }
 
-    catch(exception)
+                    let json = JSON.parse(data)
+                    let foundFile = false
+                    let searchedFileNames = []
+
+                    json.Logs.forEach(log => {
+                    
+                        if (log.address == hashaddress)
+                        {
+                            if (!searchedFileNames.includes[log.file_path])
+                            {
+                                console.log("Found address: " + hashaddress)
+                                web3.bzz.download(hashaddress).then(
+                                    function(buffer)
+                                    {
+                                        //console.log("downloaded file: ", buffer.toString())                                
+                                        console.log("downloaded file: " + log.file_path)
+                                        fs.writeFileSync(downloadDest, buffer, {flag:'a+'})
+                                        foundFile = true
+                                    }
+                                )
+                                searchedFileNames.push(log.file_path)
+                            }
+                        }
+                        else
+                        {
+                            console.log("Swarm Address not found...")
+                        }
+                    })
+
+                    if (!foundFile)
+                        console.log("Swarm Address: " + hashaddress + " does not exist")
+                    else
+                    {
+                        fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(json))
+                    }
+                })
+            }
+            else 
+            {
+                console.log("No files have been backed up to Swarm yet...")
+            }        
+        }
+
+        catch(exception)
+        {
+            console.log(exception)
+        }
+    }
+    else 
     {
-        console.log(exception)
+        console.log("Please provide a valid Swarm Hash Address and Destination File path")
+        console.log("Example : bb download [swarm address] [destination filepath]")
     }
 }
 
@@ -253,16 +277,11 @@ function add(filepath, time)
 
 function handleUserPreferenceInput(prefInput)
 {
-    /*
-        Example =>   add [filepath]       
-        Example =>   add [filepath] [hour : minutes] 
-    */  
     let hour = null
     let min = null
     let filenames = []
-    let formattedfilepaths = []
-    let plainfilenames = []
     let currdate = new Date();
+    let hasTimeError = false;
 
     if (prefInput.filepath)
     {
@@ -279,22 +298,19 @@ function handleUserPreferenceInput(prefInput)
     {
         //check for appropriate formatting
         hour = prefInput.time.substr(0,2)
-        min = prefInput.time.substr(3,2)
-        
-        /*
-        if (isNaN(hour))
-            console.log("Not a real hour number: " + hour) 
+        min = prefInput.time.substr(3,2)    
 
-        else 
-            console.log("Real number: " + hour)
+        if (parseInt(hour) > 24 || isNaN(hour))
+        {
+            console.log("The entered hour was too large, Please select a value less than or equal to 24")
+            hasTimeError = true;
+        }
 
-        if (isNaN(min))
-            console.log("Not a real min number: " + min)
-
-        else 
-            console.log("Real number: " + min)
-
-        */
+        if (parseInt(min) > 59 || isNaN(min))
+        {
+            console.log("The entered minute was too large, Please select a value less than or equal to 59")
+            hasTimeError = true;
+        }
     }
     else
     {
@@ -310,41 +326,27 @@ function handleUserPreferenceInput(prefInput)
             min = "0" + unformattedMin.toString()
         else 
             min = unformattedMin.toString()
-    
-        console.log("HOUR: " + hour)
-        console.log("MIN: " + min)
     }    
 
-    filenames.push(prefInput.filepath)
-    
-    filenames.forEach(fullfilepath =>{
-      
-       let filepath = fullfilepath
-       let filename = path.basename(fullfilepath)
-    
-       let preference = {
-         file_name: filename,
-         file_path: filepath,
-         hour: hour,
-         minute: min,
-        }
+    if (!hasTimeError)  //Only after no time error has been received after correct time hour and minutes have been 
+    {
+        filenames.push(prefInput.filepath)
+        
+        filenames.forEach(fullfilepath =>{
+        
+            let filepath = fullfilepath
+            let filename = path.basename(fullfilepath)
+            
+            let preference = {
+                file_name: filename,
+                file_path: filepath,
+                run_hour: hour,
+                run_min: min,
+            }
 
-        console.log(preference)
-        modifyPreferenceFile(preference)    
-    }) 
-    
-    /*
-
-    let preferences = {
-        filenames: plainfilenames,
-        filepath: formattedfilepaths,
-        hour: hour,
-        minute: min,
+            modifyPreferenceFile(preference)    
+        }) 
     }
-    console.log(preferences)
-
-    modifyPreferenceFile(preferences)
-    */
 }
 
 function removePreferenceElement(json){
@@ -411,79 +413,92 @@ function start()
     if (fs.existsSync(PREF_FILE_PATH))
     {
         fs.readFile(PREF_FILE_PATH, function (err, data) {
-            let date = new Date()
+            
             let json = JSON.parse(data) 
-
-            setInterval(() => processPreferences(json, date), 1000)            
+            
+            if (err)
+                console.log("An error has occurred when scanning for files to back up")
+            
+            else 
+            {
+                console.log("Beginning busybee back up scan...")
+                processPreferences(json) //Runs immediately to check for current files to backup 
+                setInterval(() => processPreferences(json), 60000)  //Runs indefinitely after the initial run
+            }
         })
+    }
+
+    else
+    {
+        console.log('There are currently no files scheduled for back up')
+        console.log('Please use the add command to schedule a file')
     }
 }
 
-function processPreferences(json, date)
+function processPreferences(json)
 {
     json.Pref.forEach(pref => { 
                                 
-        if (date.getHours() === parseInt(pref.hour))
+        let date = new Date()
+        if (date.getHours() === parseInt(pref.run_hour))
         {
-            if (date.getMinutes() === parseInt(pref.minute))
+            if (date.getMinutes() === parseInt(pref.run_min))
             {
-                console.log(pref.hour + "|" + pref.minute)
-                backupfiles(pref.filenames, filepaths, date)
-            }
-            else
-            {
-                console.log(pref.hour + "|" + pref.minute)
+                backupfiles(pref.file_name, pref.file_path, date)
             }
         }
     })    
 }
 
-function viewHistory(){
-    fs.readFile(LOG_FILE_PATH, function (err, data) {
-        
-        if (err)
-        {
-            console.log("An error occurred checking for files to backup...")
-            return
-        }
-        
-        //Parse each element of the preference json's object  
-        let json = JSON.parse(data)  
-        console.table(json.Logs)
-    })
+function history()
+{
+    if (fs.existsSync(LOG_FILE_PATH))
+    {
+        fs.readFile(LOG_FILE_PATH, function (err, data) {
+            
+            if (err)
+            {
+                console.log("An error occurred checking for files to backup...")
+                return
+            }
+            
+            //Parse each element of the preference json's object  
+            let json = JSON.parse(data)  
+            console.table(json.Logs)
+        })
+    }
+    else
+    {
+        console.log("No files have been backed up yet")
+    }
 }
 
-async function backupfiles(filenames, filepaths, currDate) 
+async function backupfiles(filename, filepath, currDate) 
 {
     try 
     {            
-        let counter = 0
-        for (let filename of filenames)
+        console.log("Backing up file " + filename + " now...")
+        let filebytesstring = fs.readFileSync(filepath)  //Returns buffer object
+        let hashaddress = await web3.bzz.upload(filebytesstring)  //Uploads buffer object to swarm network 
+                    
+        if (hashaddress)
         {
-            console.log("Backing up file " + filename + " now...")
+            console.log("Successfully backed up file: " + filename)
 
-            let filebytesstring = fs.readFileSync(filepaths[counter])  //Returns buffer object
-            let hashaddress = await web3.bzz.upload(filebytesstring)   //Uploads buffer object to swarm network 
-                        
-            if (hashaddress)
-            {
-                console.log("Successfully backed up file: " + filename)
+            var logjson = {
+                address: hashaddress,
+                file_name: filename,
+                file_path: filepath,
+                upload_date: currDate.getMonth() + 1 + "/" + currDate.getDate() + "/" + currDate.getFullYear(),
+                exist: true,                  
+            }     
 
-                var logjson = {
-                    address: hashaddress,
-                    file_name: filename,
-                    file_path: filepaths[counter],
-                    upload_date: currDate.getMonth() + "/" + currDate.getDate() + "/" + currDate.getFullYear(),
-                    exist: true,                  
-                }     
+            modifylogfile(logjson)  //updates Log File 
 
-                modifylogfile(logjson)  //updates Log File 
-
-                counter = 0; //reset counter once hash found         
-            }
-
-            counter++
+            counter = 0; //reset counter once hash found         
         }
+
+        counter++        
     }
     catch(exception)
     {
