@@ -2,7 +2,7 @@
 
 /* 
 
-Title: busybee
+Title: busy-bzz
 
 Project Description: 
 This project gives users the ability to routinely 
@@ -22,19 +22,19 @@ const PREF_FILE_PATH = __dirname + "/pref.json"
 const LOG_FILE_PATH = __dirname + "/logfile.json"
 const HELP_TEXT = `                                   
                                                          
-busybee Swarm Utility      
+busy-bzz Swarm Utility      
 
 
 Description:                                           
-    busybee is a swarm utility allows a user to Select and schedule      
+    busy-bzz is a swarm utility allows a user to Select and schedule      
     groups of files to be uploaded to the Swarm network   
 
     usage: 
-      (busybee) bb <command>
+      (busy-bzz) bb <command>
         
       commands:
 
-       start:      Start BusyBee Swarm recovery process. 
+       start:      Start busy-bzz Swarm recovery process. 
         
         Example ---> bb start
 
@@ -432,7 +432,7 @@ function start()
             
             else 
             {
-                console.log("Beginning 24/7 busybee scan...")
+                console.log("Beginning 24/7 busy-bzz scan...")
                 processPreferences(json) //Runs immediately to check for current files to backup 
                 setInterval(() => processPreferences(json), 60000)  //Runs indefinitely after the initial run
             }
