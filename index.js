@@ -109,7 +109,59 @@ function captureUserInput()
     }
 }
 
+//HELPER METHODS
 
+function modifyPreferenceFile(preferences){
+    
+    if (fs.existsSync(PREF_FILE_PATH))
+    {
+        console.log("File exist updating preference file")
+        fs.readFile(PREF_FILE_PATH, function (err, data) {
+            console.log('Saving user preferences...')
+            let json = JSON.parse(data)
+            json.Pref.push(preferences)
+            fs.writeFileSync(PREF_FILE_PATH, JSON.stringify(json))
+        })
+    }
+
+    else
+    {
+        console.log("File does not exist; creating preference file")
+        let initPrefObj = {
+            Pref : [preferences]
+        }
+
+        let data = JSON.stringify(initPrefObj)  
+        fs.writeFileSync(PREF_FILE_PATH, data)
+    }
+}
+
+function modifylogfile(logJson)
+{
+    if (fs.existsSync(LOG_FILE_PATH))
+    {
+        console.log("Updating log file...")
+        fs.readFile(LOG_FILE_PATH, function (err, data) {
+
+            if (err)
+                console.log('An error occurred updating log file')
+
+            console.log('updating json log file')
+            let json = JSON.parse(data)
+            json.Logs.push(logJson)
+            fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(json))        
+        })
+    }
+
+    else
+    {
+        console.log("File does not exist; creating logfile.json file")
+        let data = JSON.stringify({ Logs : [logJson]})  
+        fs.writeFileSync(LOG_FILE_PATH, data)
+    }
+}
+
+//COMMAND remove()
 async function remove(filepath)
 {
     try
@@ -117,31 +169,39 @@ async function remove(filepath)
         if (fs.existsSync(PREF_FILE_PATH))
         {                   
             fs.readFile(PREF_FILE_PATH, function (err, data) {
+                
                 if (err)
                     console.log("An error occurred opening Preference file: " + err)
 
-                let json = JSON.parse(data)
-
+                let prefJson = JSON.parse(data)
                 let counter = 0;
                 let found = false;
-                json.Pref.forEach(pref => {
+                let elementsForDeletion = []
+
+                prefJson.Pref.forEach(pref => {
 
                     if (pref.file_path === filepath)
                     {
-                        found = true;
+                        //found = true;
                         console.log("Found pref property: " + pref.file_path)                        
                     }
                     else
                     {
-                        if (!found)  //Added because you can't manually break collection.foreach >:(
+                        //if (!found)  //Added because you can't manually break collection.foreach (that I know of)
+                        //{   
+                            elementsForDeletion.push(counter) //Contains elements that use the given file path (may remove duplicate file paths for now)
                             counter++;
+                       // }
                     }
                 })
 
-                console.log(json.Pref[counter])
-                delete json.Pref[counter]
+                //Delete preferences that contain the specified file path
+                elementsForDeletion.forEach(element => {
+                    console.log("Deleteing element " + prefJson.Pref[element])
+                    prefJson.Pref.splice(element,1)
+                })
 
-                removePreferenceElement(json)
+                removePreferenceElement(prefJson)
             })
         }
 
@@ -157,6 +217,16 @@ async function remove(filepath)
     }
 }
 
+function removePreferenceElement(json){
+    
+    if (fs.existsSync(PREF_FILE_PATH))
+    {
+        console.log("File exist updating preference file")
+        fs.writeFileSync(PREF_FILE_PATH, JSON.stringify(json))
+    }
+}
+
+//COMMAND view()
 function view()
 {
     try
@@ -185,6 +255,7 @@ function view()
     }
 }
 
+//COMMAND download()
 async function download(hashaddress, downloadDest)
 {
     if (hashaddress != null && hashaddress.length > 0 && downloadDest != null && downloadDest.length > 0)
@@ -227,10 +298,6 @@ async function download(hashaddress, downloadDest)
                                 searchedFileNames.push(log.file_path)
                             }
                         }
-                        else
-                        {
-                            console.log("Swarm Address not found...")
-                        }
                     })
 
                     if (!foundFile)
@@ -259,11 +326,12 @@ async function download(hashaddress, downloadDest)
     }
 }
 
+//COMMAND add()
 function add(filepath, time)
 {
     try
     {
-        var prefInput = {
+        let prefInput = {
             filepath: filepath,
             time: time, 
         }
@@ -334,12 +402,13 @@ function handleUserPreferenceInput(prefInput)
         
         filenames.forEach(fullfilepath =>{
         
-            let filepath = fullfilepath
+            let filepath = path.normalize(fullfilepath)
             let filename = path.basename(fullfilepath)
             
             let preference = {
                 file_name: filename,
                 file_path: filepath,
+                swarm_address: "",
                 run_hour: hour,
                 run_min: min,
             }
@@ -349,65 +418,7 @@ function handleUserPreferenceInput(prefInput)
     }
 }
 
-function removePreferenceElement(json){
-    
-    if (fs.existsSync(PREF_FILE_PATH))
-    {
-        console.log("File exist updating preference file")
-        fs.writeFileSync(PREF_FILE_PATH, JSON.stringify(json))
-    }
-}
-
-function modifyPreferenceFile(preferences){
-    
-    if (fs.existsSync(PREF_FILE_PATH))
-    {
-        console.log("File exist updating preference file")
-        fs.readFile(PREF_FILE_PATH, function (err, data) {
-            console.log('Saving user preferences...')
-            let json = JSON.parse(data)
-            json.Pref.push(preferences)
-            fs.writeFileSync(PREF_FILE_PATH, JSON.stringify(json))
-        })
-    }
-
-    else
-    {
-        console.log("File does not exist; creating preference file")
-        let initPrefObj = {
-            Pref : [preferences]
-        }
-
-        let data = JSON.stringify(initPrefObj)  
-        fs.writeFileSync(PREF_FILE_PATH, data)
-    }
-}
-
-function modifylogfile(logJson)
-{
-    if (fs.existsSync(LOG_FILE_PATH))
-    {
-        console.log("Updating log file...")
-        fs.readFile(LOG_FILE_PATH, function (err, data) {
-
-            if (err)
-                console.log('An error occurred updating log file')
-
-            console.log('updating json log file')
-            let json = JSON.parse(data)
-            json.Logs.push(logJson)
-            fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(json))        
-        })
-    }
-
-    else
-    {
-        console.log("File does not exist; creating logfile.json file")
-        let data = JSON.stringify({ Logs : [logJson]})  
-        fs.writeFileSync(LOG_FILE_PATH, data)
-    }
-}
-
+//COMMAND start()
 function start()
 {
     if (fs.existsSync(PREF_FILE_PATH))
@@ -421,7 +432,7 @@ function start()
             
             else 
             {
-                console.log("Beginning busybee back up scan...")
+                console.log("Beginning 24/7 busybee scan...")
                 processPreferences(json) //Runs immediately to check for current files to backup 
                 setInterval(() => processPreferences(json), 60000)  //Runs indefinitely after the initial run
             }
@@ -450,6 +461,79 @@ function processPreferences(json)
     })    
 }
 
+async function backupfiles(filename, filepath, currDate) 
+{
+    try 
+    {            
+        console.log("Backing up file " + filename + " now...")
+        let filebytesstring = fs.readFileSync(filepath)  //Returns buffer object
+        let hashaddress = await web3.bzz.upload(filebytesstring)  //Uploads buffer object to swarm network 
+                    
+        if (hashaddress)
+        {
+            console.log("Successfully backed up file: " + filename)
+
+            let logjson = {
+                address: hashaddress,
+                file_name: filename,
+                file_path: filepath,
+                upload_date: currDate.getMonth() + 1 + "/" + currDate.getDate() + "/" + currDate.getFullYear(),
+                exist: true,                  
+            }     
+
+            modifylogfile(logjson)  //updates Log File 
+
+            if (hashaddress)
+                updatePreferenceFileAddress(hashaddress, filepath)  
+            else
+                console.log("Error received Swarm address after uploading file...")
+
+            counter = 0; //reset counter once hash found         
+        }
+
+        counter++       
+    }
+    catch(exception)
+    {
+        console.log(exception)
+    }
+}
+
+function updatePreferenceFileAddress(hashaddress, file_path)
+{    
+    if (fs.existsSync(PREF_FILE_PATH))
+    {
+        console.log("Updating preference file with file address")
+        fs.readFile(PREF_FILE_PATH, function (err, data) {
+
+            if (err)
+            {
+                console.log("An error has occurred while attempting to update the preference file")
+            }
+
+            else
+            {            
+                let json = JSON.parse(data)
+                json.Pref.forEach(pref => 
+                {
+                    if (pref.file_path === file_path)
+                    {
+                        pref.swarm_address = hashaddress
+                    }
+                })
+
+                fs.writeFileSync(PREF_FILE_PATH, JSON.stringify(json))
+            }
+        })
+    }
+
+    else
+    {
+        console.log("Unable to find preference file after uploading file to Swarm")
+    }
+}
+
+//COMMAND history()
 function history()
 {
     if (fs.existsSync(LOG_FILE_PATH))
@@ -470,38 +554,5 @@ function history()
     else
     {
         console.log("No files have been backed up yet")
-    }
-}
-
-async function backupfiles(filename, filepath, currDate) 
-{
-    try 
-    {            
-        console.log("Backing up file " + filename + " now...")
-        let filebytesstring = fs.readFileSync(filepath)  //Returns buffer object
-        let hashaddress = await web3.bzz.upload(filebytesstring)  //Uploads buffer object to swarm network 
-                    
-        if (hashaddress)
-        {
-            console.log("Successfully backed up file: " + filename)
-
-            var logjson = {
-                address: hashaddress,
-                file_name: filename,
-                file_path: filepath,
-                upload_date: currDate.getMonth() + 1 + "/" + currDate.getDate() + "/" + currDate.getFullYear(),
-                exist: true,                  
-            }     
-
-            modifylogfile(logjson)  //updates Log File 
-
-            counter = 0; //reset counter once hash found         
-        }
-
-        counter++        
-    }
-    catch(exception)
-    {
-        console.log(exception)
     }
 }
