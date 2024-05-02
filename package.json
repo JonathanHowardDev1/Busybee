@@ -2,7 +2,6 @@
   "name": "busy-bzz",
   "version": "1.0.0",
   "description": "Automated File Recovery using the Swarm Protocol",
-  "main": "./bin/index.js",
   "bin": {
     "bb": "./bin/index.js"
   },
